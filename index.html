@@ -1,405 +1,903 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NovaAI OS — Browser Emulator</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-    <script src="https://copy.sh/v86/build/libv86.js"></script>
-    <style>
-        :root {
-            --bg: #030712; --surface: #0d1117; --surface2: #161b22; --border: #21262d;
-            --glow: #00f5ff; --glow2: #7c3aed; --accent: #00f5ff; --accent2: #a78bfa;
-            --text: #e6edf3; --muted: #8b949e; --danger: #f85149; --success: #3fb950; --warn: #d29922;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: var(--bg); color: var(--text); font-family: 'JetBrains Mono', monospace; min-height: 100vh; overflow-x: hidden; }
-        body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(0,245,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,245,255,0.03) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
-        body::after { content: ''; position: fixed; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px); pointer-events: none; z-index: 0; }
-        header { position: relative; z-index: 10; padding: 20px 40px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: rgba(3,7,18,0.9); backdrop-filter: blur(20px); }
-        .logo { display: flex; align-items: center; gap: 14px; }
-        .logo-icon { width: 42px; height: 42px; background: linear-gradient(135deg, var(--glow), var(--glow2)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; animation: pulse-icon 3s ease-in-out infinite; }
-        @keyframes pulse-icon { 0%,100%{box-shadow:0 0 20px rgba(0,245,255,.4)} 50%{box-shadow:0 0 40px rgba(0,245,255,.7),0 0 60px rgba(124,58,237,.3)} }
-        .logo-text { font-family: 'Orbitron', sans-serif; font-size: 1.2rem; font-weight: 700; letter-spacing: 2px; background: linear-gradient(90deg, var(--glow), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .logo-sub { font-size: 0.6rem; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; }
-        .status-badge { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); padding: 6px 14px; border-radius: 20px; }
-        .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); transition: all 0.3s; }
-        .status-dot.running { background: var(--success); box-shadow: 0 0 8px var(--success); animation: blink 1.5s ease-in-out infinite; }
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
-        main { position: relative; z-index: 5; max-width: 1200px; margin: 0 auto; padding: 40px 24px 60px; }
-        .hero { text-align: center; margin-bottom: 48px; }
-        .hero-tag { display: inline-block; font-size: 0.68rem; letter-spacing: 4px; text-transform: uppercase; color: var(--accent); border: 1px solid rgba(0,245,255,.3); padding: 6px 16px; border-radius: 4px; margin-bottom: 20px; background: rgba(0,245,255,.05); }
-        .hero h1 { font-family: 'Orbitron', sans-serif; font-size: clamp(2rem,5vw,3.4rem); font-weight: 900; letter-spacing: 3px; line-height: 1.1; margin-bottom: 16px; background: linear-gradient(135deg, #fff 0%, var(--glow) 50%, var(--accent2) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .hero p { color: var(--muted); font-size: 0.85rem; line-height: 1.7; max-width: 500px; margin: 0 auto; }
-        .section-label { font-size: 0.68rem; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
-        .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-        .selector-section { margin-bottom: 40px; }
-        .iso-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
-        .iso-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; cursor: pointer; transition: all 0.25s; position: relative; overflow: hidden; }
-        .iso-card::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(0,245,255,.05), transparent 60%); opacity: 0; transition: opacity 0.25s; }
-        .iso-card:hover::before, .iso-card.selected::before { opacity: 1; }
-        .iso-card:hover { border-color: rgba(0,245,255,.4); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,245,255,.1); }
-        .iso-card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 8px 30px rgba(0,245,255,.2); }
-        .iso-card.selected .card-check { opacity: 1; transform: scale(1); }
-        .card-check { position: absolute; top: 14px; right: 14px; width: 22px; height: 22px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; opacity: 0; transform: scale(0.5); transition: all 0.2s; color: #000; }
-        .card-icon { font-size: 2.2rem; margin-bottom: 12px; }
-        .card-name { font-family: 'Orbitron', sans-serif; font-size: 0.82rem; font-weight: 600; letter-spacing: 1px; color: var(--text); margin-bottom: 6px; }
-        .card-desc { font-size: 0.73rem; color: var(--muted); line-height: 1.5; }
-        .card-meta { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
-        .badge { font-size: 0.62rem; padding: 3px 10px; border-radius: 4px; letter-spacing: 1px; text-transform: uppercase; }
-        .badge-blue { background: rgba(0,245,255,.1); color: var(--accent); border: 1px solid rgba(0,245,255,.2); }
-        .badge-purple { background: rgba(124,58,237,.15); color: var(--accent2); border: 1px solid rgba(124,58,237,.3); }
-        .badge-green { background: rgba(63,185,80,.1); color: var(--success); border: 1px solid rgba(63,185,80,.2); }
-        .badge-orange { background: rgba(210,153,34,.1); color: var(--warn); border: 1px solid rgba(210,153,34,.2); }
-        .upload-card { background: var(--surface); border: 2px dashed var(--border); border-radius: 12px; padding: 32px 24px; cursor: pointer; transition: all 0.25s; text-align: center; position: relative; }
-        .upload-card:hover, .upload-card.drag-over { border-color: var(--accent); background: rgba(0,245,255,.03); }
-        .upload-card.selected { border-style: solid; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 8px 30px rgba(0,245,255,.15); }
-        .upload-icon { font-size: 2.5rem; margin-bottom: 12px; display: block; }
-        .upload-card input[type="file"] { display: none; }
-        .upload-name { font-size: 0.75rem; color: var(--accent); font-weight: 500; margin-top: 8px; word-break: break-all; }
-        .controls-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin-bottom: 32px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-        .control-label { font-size: 0.68rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; }
-        .control-group { display: flex; align-items: center; gap: 10px; }
-        .slider-wrap { display: flex; align-items: center; gap: 10px; }
-        input[type="range"] { -webkit-appearance: none; width: 110px; height: 4px; background: var(--border); border-radius: 2px; outline: none; }
-        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: var(--accent); border-radius: 50%; cursor: pointer; box-shadow: 0 0 8px var(--accent); }
-        .range-val { font-size: 0.72rem; color: var(--accent); width: 50px; text-align: right; }
-        .spacer { flex: 1; }
-        .btn { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 500; letter-spacing: 1px; padding: 10px 22px; border-radius: 8px; cursor: pointer; border: none; text-transform: uppercase; transition: all 0.2s; white-space: nowrap; }
-        .btn-primary { background: linear-gradient(135deg, var(--glow), #0099cc); color: #000; box-shadow: 0 4px 20px rgba(0,245,255,.3); }
-        .btn-primary:hover:not(:disabled) { box-shadow: 0 4px 30px rgba(0,245,255,.5); transform: translateY(-1px); }
-        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-        .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-        .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
-        .btn-danger { background: rgba(248,81,73,.15); color: var(--danger); border: 1px solid rgba(248,81,73,.3); }
-        .btn-danger:hover:not(:disabled) { background: rgba(248,81,73,.25); }
-        .btn-danger:disabled { opacity: 0.4; cursor: not-allowed; }
-        .emulator-header { display: flex; align-items: center; gap: 12px; background: var(--surface2); border: 1px solid var(--border); border-bottom: none; border-radius: 12px 12px 0 0; padding: 12px 20px; }
-        .window-dots { display: flex; gap: 7px; }
-        .dot { width: 12px; height: 12px; border-radius: 50%; }
-        .dot-red { background: #ff5f57; }
-        .dot-yellow { background: #ffbd2e; }
-        .dot-green { background: #28c840; }
-        .win-title { font-size: 0.72rem; color: var(--muted); margin-left: 8px; flex: 1; text-align: center; }
-        .emulator-frame { background: #000; border: 1px solid var(--border); border-radius: 0 0 12px 12px; overflow: hidden; min-height: 500px; display: flex; align-items: center; justify-content: center; position: relative; }
-        #screen_container { width: 100%; min-height: 500px; }
-        #screen_container canvas { display: block; width: 100% !important; height: auto !important; }
-        .idle-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; text-align: center; width: 100%; }
-        .idle-state.hidden { display: none; }
-        .idle-art { font-size: 5rem; margin-bottom: 20px; opacity: 0.6; animation: float 4s ease-in-out infinite; }
-        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-        .idle-title { font-family: 'Orbitron', sans-serif; font-size: 0.95rem; color: var(--muted); letter-spacing: 2px; margin-bottom: 8px; }
-        .idle-sub { font-size: 0.72rem; color: #3d444d; }
-        .loading-overlay { position: absolute; inset: 0; background: rgba(3,7,18,.95); flex-direction: column; align-items: center; justify-content: center; z-index: 20; display: none; }
-        .loading-overlay.active { display: flex; }
-        .loader-ring { width: 56px; height: 56px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; margin-bottom: 20px; box-shadow: 0 0 20px rgba(0,245,255,.2); }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-text { font-size: 0.78rem; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; animation: pulse-text 1.5s ease-in-out infinite; }
-        .loading-sub { font-size: 0.68rem; color: var(--muted); margin-top: 8px; letter-spacing: 1px; }
-        @keyframes pulse-text { 0%,100%{opacity:1} 50%{opacity:.5} }
-        .log-section { margin-top: 24px; }
-        .log-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-        .log-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface2); }
-        .log-title { font-size: 0.68rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; flex: 1; }
-        .log-clear { font-size: 0.63rem; color: var(--muted); cursor: pointer; padding: 2px 8px; border-radius: 4px; border: 1px solid transparent; background: none; font-family: inherit; transition: all 0.2s; }
-        .log-clear:hover { color: var(--danger); border-color: rgba(248,81,73,.3); }
-        #log-output { padding: 16px; font-size: 0.7rem; color: #6a737d; line-height: 1.8; max-height: 160px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; }
-        #log-output .log-line { display: block; }
-        #log-output .log-success { color: var(--success); }
-        #log-output .log-warn { color: var(--warn); }
-        #log-output .log-error { color: var(--danger); }
-        #log-output .log-info { color: var(--accent); }
-        footer { position: relative; z-index: 5; text-align: center; padding: 32px 20px; border-top: 1px solid var(--border); font-size: 0.68rem; color: #3d444d; letter-spacing: 1px; }
-        footer a { color: var(--muted); text-decoration: none; }
-        footer a:hover { color: var(--accent); }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: var(--surface); }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
-        @media(max-width:600px) { header{padding:16px 20px} main{padding:24px 16px} .controls-bar{flex-direction:column;align-items:flex-start} .btn{width:100%;text-align:center} }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CloudCore — Run Any OS in Your Browser</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Syne+Mono&display=swap" rel="stylesheet">
+<script src="https://copy.sh/v86/build/libv86.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --black:#000000;
+  --white:#ffffff;
+  --off:#0a0a0a;
+  --dim:#111111;
+  --line:#1a1a1a;
+  --line2:#222222;
+  --muted:#3a3a3a;
+  --subtle:#555555;
+  --text:#cccccc;
+  --text2:#888888;
+  --accent:#ffffff;
+  --red:#ff3333;
+  --green:#33ff88;
+}
+
+html{scroll-behavior:smooth}
+
+body{
+  background:var(--black);
+  color:var(--text);
+  font-family:'Syne',sans-serif;
+  min-height:100vh;
+  cursor:crosshair;
+  overflow-x:hidden;
+}
+
+/* NOISE TEXTURE */
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  background-repeat:repeat;
+  background-size:128px 128px;
+  pointer-events:none;
+  z-index:1000;
+  mix-blend-mode:overlay;
+}
+
+/* ─── HEADER ─── */
+header{
+  position:sticky;top:0;z-index:500;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 40px;
+  height:56px;
+  border-bottom:1px solid var(--line);
+  background:rgba(0,0,0,0.96);
+  backdrop-filter:blur(12px);
+}
+
+.wordmark{
+  font-family:'Syne',sans-serif;
+  font-size:0.85rem;
+  font-weight:800;
+  letter-spacing:6px;
+  text-transform:uppercase;
+  color:var(--white);
+}
+
+.wordmark span{color:var(--subtle);font-weight:400}
+
+.header-right{display:flex;align-items:center;gap:24px}
+
+.pill{
+  display:flex;align-items:center;gap:7px;
+  font-family:'Syne Mono',monospace;
+  font-size:0.65rem;
+  letter-spacing:2px;
+  color:var(--subtle);
+  text-transform:uppercase;
+}
+
+.dot{
+  width:6px;height:6px;
+  border-radius:50%;
+  background:var(--muted);
+  transition:all 0.4s;
+}
+.dot.on{background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ─── HERO ─── */
+.hero{
+  padding:120px 40px 80px;
+  border-bottom:1px solid var(--line);
+  position:relative;
+  overflow:hidden;
+}
+
+.hero::after{
+  content:'';
+  position:absolute;
+  top:-1px;right:0;
+  width:1px;height:100%;
+  background:linear-gradient(to bottom, transparent, var(--line2) 30%, var(--line2) 70%, transparent);
+}
+
+.hero-eyebrow{
+  font-family:'Syne Mono',monospace;
+  font-size:0.65rem;
+  letter-spacing:4px;
+  color:var(--subtle);
+  text-transform:uppercase;
+  margin-bottom:32px;
+  display:flex;align-items:center;gap:12px;
+}
+
+.hero-eyebrow::before{
+  content:'';
+  display:inline-block;
+  width:24px;height:1px;
+  background:var(--muted);
+}
+
+.hero h1{
+  font-size:clamp(3.5rem,9vw,8rem);
+  font-weight:800;
+  letter-spacing:-3px;
+  line-height:0.9;
+  color:var(--white);
+  margin-bottom:40px;
+}
+
+.hero h1 .dim{
+  color:transparent;
+  -webkit-text-stroke:1px var(--line2);
+}
+
+.hero-sub{
+  font-size:0.8rem;
+  color:var(--text2);
+  letter-spacing:1px;
+  line-height:1.8;
+  max-width:340px;
+}
+
+.hero-meta{
+  position:absolute;
+  bottom:40px;right:40px;
+  font-family:'Syne Mono',monospace;
+  font-size:0.6rem;
+  color:var(--muted);
+  letter-spacing:2px;
+  text-align:right;
+  line-height:2;
+}
+
+/* ─── SECTIONS ─── */
+section{border-bottom:1px solid var(--line)}
+
+.section-inner{
+  max-width:1200px;
+  margin:0 auto;
+  padding:60px 40px;
+}
+
+.step-label{
+  font-family:'Syne Mono',monospace;
+  font-size:0.6rem;
+  letter-spacing:4px;
+  color:var(--muted);
+  text-transform:uppercase;
+  margin-bottom:32px;
+  display:flex;align-items:center;gap:16px;
+}
+
+.step-label::after{content:'';flex:1;height:1px;background:var(--line)}
+
+/* ─── ISO CARDS ─── */
+.iso-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  border:1px solid var(--line);
+}
+
+@media(max-width:760px){.iso-grid{grid-template-columns:1fr}}
+
+.iso-card{
+  padding:32px;
+  border-right:1px solid var(--line);
+  cursor:pointer;
+  transition:background 0.2s;
+  position:relative;
+}
+
+.iso-card:last-child{border-right:none}
+
+.iso-card:hover{background:var(--off)}
+
+.iso-card.active{
+  background:var(--dim);
+}
+
+.iso-card.active::before{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:1px;
+  background:var(--white);
+}
+
+.card-num{
+  font-family:'Syne Mono',monospace;
+  font-size:0.6rem;
+  color:var(--muted);
+  letter-spacing:2px;
+  margin-bottom:24px;
+}
+
+.card-title{
+  font-size:1.1rem;
+  font-weight:700;
+  color:var(--white);
+  letter-spacing:-0.5px;
+  margin-bottom:8px;
+}
+
+.card-body{
+  font-size:0.72rem;
+  color:var(--text2);
+  line-height:1.7;
+  margin-bottom:20px;
+}
+
+.card-tags{display:flex;gap:6px;flex-wrap:wrap}
+
+.tag{
+  font-family:'Syne Mono',monospace;
+  font-size:0.58rem;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  padding:3px 8px;
+  border:1px solid var(--line2);
+  color:var(--subtle);
+}
+
+.iso-card.active .tag{border-color:var(--muted);color:var(--text2)}
+
+.active-mark{
+  position:absolute;top:20px;right:20px;
+  width:18px;height:18px;
+  border:1px solid var(--white);
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;
+  color:var(--white);
+  opacity:0;
+  transition:opacity 0.2s;
+}
+
+.iso-card.active .active-mark{opacity:1}
+
+/* UPLOAD ZONE */
+.upload-zone{
+  border:1px solid var(--line);
+  border-style:dashed;
+  padding:40px 32px;
+  cursor:pointer;
+  transition:all 0.2s;
+  text-align:center;
+  grid-column:span 1;
+}
+
+.upload-zone:hover,.upload-zone.drag-over{
+  background:var(--off);
+  border-color:var(--muted);
+}
+
+.upload-zone.active{
+  background:var(--dim);
+  border-style:solid;
+  border-color:var(--white);
+}
+
+.upload-zone.active::before{display:none}
+
+.upload-icon-wrap{
+  font-size:2rem;
+  margin-bottom:16px;
+  filter:grayscale(1);
+}
+
+.upload-title{
+  font-size:1rem;
+  font-weight:700;
+  color:var(--white);
+  letter-spacing:-0.3px;
+  margin-bottom:6px;
+}
+
+.upload-hint{
+  font-size:0.68rem;
+  color:var(--text2);
+  letter-spacing:0.5px;
+}
+
+.upload-file-name{
+  margin-top:12px;
+  font-family:'Syne Mono',monospace;
+  font-size:0.65rem;
+  color:var(--text);
+  letter-spacing:1px;
+  word-break:break-all;
+}
+
+input[type=file]{display:none}
+
+/* ─── CONTROLS ─── */
+.controls-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr auto auto;
+  gap:0;
+  border:1px solid var(--line);
+  align-items:center;
+}
+
+@media(max-width:700px){.controls-grid{grid-template-columns:1fr 1fr;}}
+
+.ctrl-cell{
+  padding:20px 28px;
+  border-right:1px solid var(--line);
+}
+
+.ctrl-cell:last-child{border-right:none}
+
+.ctrl-label{
+  font-family:'Syne Mono',monospace;
+  font-size:0.58rem;
+  letter-spacing:3px;
+  color:var(--muted);
+  text-transform:uppercase;
+  margin-bottom:12px;
+}
+
+.ctrl-slider-row{display:flex;align-items:center;gap:12px}
+
+input[type=range]{
+  -webkit-appearance:none;
+  flex:1;
+  height:1px;
+  background:var(--line2);
+  outline:none;
+  border:none;
+}
+
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:12px;height:12px;
+  background:var(--white);
+  border-radius:50%;
+  cursor:pointer;
+}
+
+.ctrl-val{
+  font-family:'Syne Mono',monospace;
+  font-size:0.7rem;
+  color:var(--white);
+  min-width:52px;
+  text-align:right;
+}
+
+.btn{
+  font-family:'Syne',sans-serif;
+  font-size:0.7rem;
+  font-weight:700;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  padding:0 32px;
+  height:100%;
+  min-height:64px;
+  border:none;
+  cursor:pointer;
+  transition:all 0.15s;
+  white-space:nowrap;
+}
+
+.btn-boot{
+  background:var(--white);
+  color:var(--black);
+}
+
+.btn-boot:hover:not(:disabled){background:#ddd}
+.btn-boot:disabled{background:var(--dim);color:var(--muted);cursor:not-allowed}
+
+.btn-stop{
+  background:var(--black);
+  color:var(--subtle);
+  border-left:1px solid var(--line);
+}
+
+.btn-stop:hover:not(:disabled){color:var(--red)}
+.btn-stop:disabled{cursor:not-allowed;opacity:0.4}
+
+/* ─── EMULATOR ─── */
+.emu-wrap{border:1px solid var(--line)}
+
+.emu-bar{
+  display:flex;align-items:center;
+  height:40px;
+  padding:0 20px;
+  border-bottom:1px solid var(--line);
+  background:var(--off);
+  gap:16px;
+}
+
+.emu-dots{display:flex;gap:6px}
+.edot{width:10px;height:10px;border-radius:50%;background:var(--line2)}
+
+.emu-title{
+  font-family:'Syne Mono',monospace;
+  font-size:0.62rem;
+  color:var(--muted);
+  letter-spacing:2px;
+  flex:1;text-align:center;
+}
+
+.emu-fs-btn{
+  font-family:'Syne Mono',monospace;
+  font-size:0.6rem;
+  color:var(--muted);
+  background:none;
+  border:1px solid var(--line2);
+  padding:3px 10px;
+  cursor:pointer;
+  letter-spacing:1px;
+  transition:all 0.2s;
+}
+
+.emu-fs-btn:hover{border-color:var(--muted);color:var(--text)}
+
+.emu-screen{
+  background:#000;
+  min-height:520px;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+
+#screen_container{width:100%;min-height:520px;display:none}
+#screen_container canvas{display:block;width:100%!important;height:auto!important}
+
+/* IDLE */
+.idle{
+  display:flex;flex-direction:column;align-items:center;gap:16px;
+  padding:80px 20px;width:100%;
+}
+
+.idle.gone{display:none}
+
+.idle-glyph{
+  font-size:3rem;
+  filter:grayscale(1);
+  opacity:0.3;
+}
+
+.idle-text{
+  font-family:'Syne Mono',monospace;
+  font-size:0.65rem;
+  letter-spacing:4px;
+  color:var(--muted);
+  text-transform:uppercase;
+}
+
+/* LOADER */
+.loader{
+  position:absolute;inset:0;
+  background:#000;
+  display:none;
+  flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:24px;
+  z-index:50;
+}
+
+.loader.show{display:flex}
+
+.loader-bar-wrap{
+  width:200px;height:1px;
+  background:var(--line2);
+  position:relative;
+  overflow:hidden;
+}
+
+.loader-bar{
+  position:absolute;top:0;left:-100%;
+  width:100%;height:100%;
+  background:var(--white);
+  animation:slide 1.4s ease-in-out infinite;
+}
+
+@keyframes slide{0%{left:-100%}100%{left:100%}}
+
+.loader-label{
+  font-family:'Syne Mono',monospace;
+  font-size:0.62rem;
+  letter-spacing:4px;
+  color:var(--muted);
+  text-transform:uppercase;
+}
+
+/* ─── LOG ─── */
+.log-wrap{
+  border:1px solid var(--line);
+  border-top:none;
+}
+
+.log-bar{
+  display:flex;align-items:center;
+  padding:0 20px;
+  height:36px;
+  border-bottom:1px solid var(--line);
+  background:var(--off);
+}
+
+.log-label{
+  font-family:'Syne Mono',monospace;
+  font-size:0.58rem;
+  letter-spacing:3px;
+  color:var(--muted);
+  text-transform:uppercase;
+  flex:1;
+}
+
+.log-clr{
+  font-family:'Syne Mono',monospace;
+  font-size:0.58rem;
+  color:var(--muted);
+  background:none;
+  border:none;
+  cursor:pointer;
+  letter-spacing:1px;
+  transition:color 0.2s;
+}
+
+.log-clr:hover{color:var(--red)}
+
+#log{
+  padding:16px 20px;
+  font-family:'Syne Mono',monospace;
+  font-size:0.65rem;
+  line-height:2;
+  color:var(--muted);
+  max-height:140px;
+  overflow-y:auto;
+}
+
+#log span{display:block}
+.l-ok{color:var(--green)!important}
+.l-warn{color:#ffaa33!important}
+.l-err{color:var(--red)!important}
+.l-info{color:var(--text2)!important}
+
+/* ─── FOOTER ─── */
+footer{
+  padding:32px 40px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-top:1px solid var(--line);
+}
+
+.footer-left{
+  font-family:'Syne Mono',monospace;
+  font-size:0.6rem;
+  letter-spacing:2px;
+  color:var(--muted);
+}
+
+.footer-right{
+  font-family:'Syne Mono',monospace;
+  font-size:0.6rem;
+  letter-spacing:2px;
+  color:var(--muted);
+}
+
+.footer-right a{color:var(--subtle);text-decoration:none;transition:color 0.2s}
+.footer-right a:hover{color:var(--text)}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--black)}
+::-webkit-scrollbar-thumb{background:var(--line2)}
+
+@media(max-width:600px){
+  header{padding:0 20px}
+  .hero{padding:80px 20px 60px}
+  .section-inner{padding:40px 20px}
+  footer{padding:24px 20px;flex-direction:column;gap:12px;text-align:center}
+}
+</style>
 </head>
 <body>
 
+<!-- HEADER -->
 <header>
-    <div class="logo">
-        <div class="logo-icon">🤖</div>
-        <div>
-            <div class="logo-text">NovaAI OS</div>
-            <div class="logo-sub">Browser Emulator</div>
-        </div>
+  <div class="wordmark">Cloud<span>core</span></div>
+  <div class="header-right">
+    <div class="pill">
+      <div class="dot" id="s-dot"></div>
+      <span id="s-txt">STANDBY</span>
     </div>
-    <div class="status-badge">
-        <div class="status-dot" id="status-dot"></div>
-        <span id="status-text">STANDBY</span>
-    </div>
+  </div>
 </header>
 
-<main>
-    <div class="hero">
-        <div class="hero-tag">▸ Powered by v86 WebAssembly</div>
-        <h1>RUN ANY OS<br>IN YOUR BROWSER</h1>
-        <p>Boot full operating systems directly in the browser using x86 hardware emulation — no installation, no VM software needed.</p>
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">x86 Browser Emulation</div>
+  <h1>CLOUD<br><span class="dim">CORE</span></h1>
+  <p class="hero-sub">Boot any operating system directly inside your browser. No installation. No virtual machine software. Just upload and run.</p>
+  <div class="hero-meta">
+    v86 / WebAssembly<br>
+    x86 Architecture<br>
+    Zero Install
+  </div>
+</div>
+
+<!-- STEP 1: ISO SELECTION -->
+<section>
+  <div class="section-inner">
+    <div class="step-label">01 &nbsp; Select Image</div>
+    <div class="iso-grid">
+
+      <div class="iso-card" id="c-nova" onclick="pick('nova',this)">
+        <div class="active-mark">✓</div>
+        <div class="card-num">001</div>
+        <div class="card-title">NovaAI OS</div>
+        <div class="card-body">Custom AI-integrated Linux distribution built for intelligent computing and research workflows.</div>
+        <div class="card-tags">
+          <span class="tag">AI / ML</span>
+          <span class="tag">Custom</span>
+          <span class="tag">28 MB</span>
+        </div>
+      </div>
+
+      <div class="iso-card" id="c-tiny" onclick="pick('tiny',this)">
+        <div class="active-mark">✓</div>
+        <div class="card-num">002</div>
+        <div class="card-title">TinyCore Linux</div>
+        <div class="card-body">Minimal 25MB Linux system. Rapid boot, ideal for quick browser-based system exploration.</div>
+        <div class="card-tags">
+          <span class="tag">Linux</span>
+          <span class="tag">Minimal</span>
+          <span class="tag">25 MB</span>
+        </div>
+      </div>
+
+      <div class="upload-zone" id="c-custom" onclick="document.getElementById('iso-input').click()">
+        <div class="active-mark" id="u-check" style="position:absolute;top:20px;right:20px;width:18px;height:18px;border:1px solid var(--white);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--white);opacity:0;transition:opacity 0.2s;">✓</div>
+        <div class="upload-icon-wrap">📁</div>
+        <div class="upload-title">Custom ISO</div>
+        <div class="upload-hint">Click to browse or drag &amp; drop<br>any x86 bootable image</div>
+        <div class="upload-file-name" id="u-name"></div>
+        <input type="file" id="iso-input" accept=".iso" onchange="onFile(event)">
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- STEP 2: CONTROLS -->
+<section>
+  <div class="section-inner">
+    <div class="step-label">02 &nbsp; Configure</div>
+    <div class="controls-grid">
+
+      <div class="ctrl-cell">
+        <div class="ctrl-label">RAM</div>
+        <div class="ctrl-slider-row">
+          <input type="range" id="r-mem" min="128" max="1024" step="128" value="512" oninput="updMem()">
+          <span class="ctrl-val" id="v-mem">512 MB</span>
+        </div>
+      </div>
+
+      <div class="ctrl-cell">
+        <div class="ctrl-label">VGA Memory</div>
+        <div class="ctrl-slider-row">
+          <input type="range" id="r-vga" min="4" max="32" step="4" value="8" oninput="updVga()">
+          <span class="ctrl-val" id="v-vga">8 MB</span>
+        </div>
+      </div>
+
+      <button class="btn btn-stop" id="btn-stop" onclick="stop()" disabled>■ STOP</button>
+      <button class="btn btn-boot" id="btn-boot" onclick="boot()" disabled>▶ BOOT</button>
+
+    </div>
+  </div>
+</section>
+
+<!-- STEP 3: VM -->
+<section>
+  <div class="section-inner">
+    <div class="step-label">03 &nbsp; Virtual Machine</div>
+
+    <div class="emu-wrap">
+      <div class="emu-bar">
+        <div class="emu-dots">
+          <div class="edot"></div>
+          <div class="edot"></div>
+          <div class="edot"></div>
+        </div>
+        <div class="emu-title" id="emu-title">— no image loaded —</div>
+        <button class="emu-fs-btn" onclick="fs()">⛶</button>
+      </div>
+
+      <div class="emu-screen" id="emu-frame">
+        <!-- loader -->
+        <div class="loader" id="loader">
+          <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+          <div class="loader-label" id="loader-txt">Initializing…</div>
+        </div>
+
+        <!-- idle -->
+        <div class="idle" id="idle">
+          <div class="idle-glyph">⬡</div>
+          <div class="idle-text">Awaiting Boot Signal</div>
+        </div>
+
+        <div id="screen_container"></div>
+      </div>
+
+      <!-- log -->
+      <div class="log-wrap">
+        <div class="log-bar">
+          <div class="log-label">System Log</div>
+          <button class="log-clr" onclick="clrLog()">clear</button>
+        </div>
+        <div id="log"></div>
+      </div>
     </div>
 
-    <div class="selector-section">
-        <div class="section-label">01 — Select ISO</div>
-        <div class="iso-grid">
+  </div>
+</section>
 
-            <div class="iso-card" id="card-nova" onclick="selectISO('nova', this)">
-                <div class="card-check">✓</div>
-                <div class="card-icon">🤖</div>
-                <div class="card-name">NovaAI OS</div>
-                <div class="card-desc">A custom AI-integrated Linux distribution built for intelligent computing workflows and research.</div>
-                <div class="card-meta">
-                    <span class="badge badge-blue">~28 MB</span>
-                    <span class="badge badge-purple">AI / ML</span>
-                    <span class="badge badge-green">Custom</span>
-                </div>
-            </div>
-
-            <div class="iso-card" id="card-tiny" onclick="selectISO('tiny', this)">
-                <div class="card-check">✓</div>
-                <div class="card-icon">🐧</div>
-                <div class="card-name">TinyCore Linux</div>
-                <div class="card-desc">Minimal Linux system with rapid boot times, perfect for quick browser-based Linux exploration.</div>
-                <div class="card-meta">
-                    <span class="badge badge-blue">~25 MB</span>
-                    <span class="badge badge-green">Lightweight</span>
-                    <span class="badge badge-orange">Linux</span>
-                </div>
-            </div>
-
-            <div class="upload-card" id="card-custom" onclick="document.getElementById('iso-file-input').click()">
-                <div class="card-check" id="upload-check" style="position:absolute;top:14px;right:14px;width:22px;height:22px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;opacity:0;transform:scale(0.5);transition:all 0.2s;color:#000;">✓</div>
-                <span class="upload-icon">📁</span>
-                <div class="card-name" style="font-family:'Orbitron',sans-serif;font-size:0.82rem;font-weight:600;letter-spacing:1px;color:var(--text);margin-bottom:6px;">Custom ISO</div>
-                <div class="card-desc">Drop your own ISO file here or click to browse. Supports any x86 bootable image.</div>
-                <div class="card-meta" style="justify-content:center;">
-                    <span class="badge badge-purple">Any x86</span>
-                    <span class="badge badge-orange">User Upload</span>
-                </div>
-                <div class="upload-name" id="upload-label"></div>
-                <input type="file" id="iso-file-input" accept=".iso" onchange="handleFileUpload(event)">
-            </div>
-
-        </div>
-    </div>
-
-    <div class="selector-section">
-        <div class="section-label">02 — Configure &amp; Launch</div>
-        <div class="controls-bar">
-            <div class="control-group">
-                <span class="control-label">Memory</span>
-                <div class="slider-wrap">
-                    <input type="range" id="mem-slider" min="128" max="1024" step="128" value="512" oninput="updateMemLabel()">
-                    <span class="range-val" id="mem-label">512 MB</span>
-                </div>
-            </div>
-            <div class="control-group">
-                <span class="control-label">VGA RAM</span>
-                <div class="slider-wrap">
-                    <input type="range" id="vga-slider" min="4" max="32" step="4" value="8" oninput="updateVgaLabel()">
-                    <span class="range-val" id="vga-label">8 MB</span>
-                </div>
-            </div>
-            <div class="spacer"></div>
-            <button class="btn btn-danger" onclick="stopEmulator()" id="btn-stop" disabled>⏹ Stop</button>
-            <button class="btn btn-primary" onclick="startEmulator()" id="btn-start" disabled>▶ Boot ISO</button>
-        </div>
-    </div>
-
-    <div class="emulator-section">
-        <div class="section-label">03 — Virtual Machine</div>
-        <div class="emulator-header">
-            <div class="window-dots">
-                <div class="dot dot-red"></div>
-                <div class="dot dot-yellow"></div>
-                <div class="dot dot-green"></div>
-            </div>
-            <div class="win-title" id="win-title">No ISO Loaded</div>
-            <button style="font-size:0.63rem;padding:4px 10px;border-radius:4px;background:var(--surface);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:inherit;transition:all 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'" onclick="toggleFullscreen()">⛶ Fullscreen</button>
-        </div>
-        <div class="emulator-frame" id="emulator-frame">
-            <div class="loading-overlay" id="loading-overlay">
-                <div class="loader-ring"></div>
-                <div class="loading-text">Booting System</div>
-                <div class="loading-sub" id="loading-sub">Initializing emulator…</div>
-            </div>
-            <div class="idle-state" id="idle-state">
-                <div class="idle-art">💻</div>
-                <div class="idle-title">Emulator Standby</div>
-                <div class="idle-sub">Select an ISO above, then click Boot ISO</div>
-            </div>
-            <div id="screen_container" style="display:none;"></div>
-        </div>
-    </div>
-
-    <div class="log-section">
-        <div class="log-box">
-            <div class="log-header">
-                <div class="log-title">System Log</div>
-                <button class="log-clear" onclick="clearLog()">Clear</button>
-            </div>
-            <div id="log-output">
-                <span class="log-line">Waiting for emulator initialization…</span>
-            </div>
-        </div>
-    </div>
-</main>
-
+<!-- FOOTER -->
 <footer>
-    Powered by <a href="https://github.com/copy/v86" target="_blank">v86</a> — x86 Emulator in WebAssembly &nbsp;·&nbsp;
-    Built by <a href="https://github.com/vishal51512" target="_blank">vishal51512</a>
+  <div class="footer-left">CLOUDCORE &nbsp;/&nbsp; BROWSER EMULATION</div>
+  <div class="footer-right">
+    <a href="https://github.com/copy/v86" target="_blank">v86</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/vishal51512/browser-deployment-for-NovaAI_OS" target="_blank">github</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/vishal51512" target="_blank">vishal51512</a>
+  </div>
 </footer>
 
 <script>
-    let selectedISO = null, customISOFile = null, customISOUrl = null, emulator = null, isRunning = false;
-    const isoMap = {
-        nova: { url: 'NovaAI-OS.iso', name: 'NovaAI OS' },
-        tiny: { url: 'TinyCore-current.iso', name: 'TinyCore Linux' }
-    };
+let sel=null,custFile=null,custUrl=null,emu=null,running=false;
+const isoMap={nova:{url:'NovaAI-OS.iso',name:'NovaAI OS'},tiny:{url:'TinyCore-current.iso',name:'TinyCore Linux'}};
 
-    function log(msg, type='') {
-        const out = document.getElementById('log-output');
-        const line = document.createElement('span');
-        line.className = 'log-line' + (type ? ' log-' + type : '');
-        line.textContent = `[${new Date().toLocaleTimeString()}]  ${msg}`;
-        out.appendChild(line);
-        out.scrollTop = out.scrollHeight;
-    }
-    function clearLog() { document.getElementById('log-output').innerHTML=''; log('Log cleared.'); }
-    function updateMemLabel() { document.getElementById('mem-label').textContent = document.getElementById('mem-slider').value + ' MB'; }
-    function updateVgaLabel() { document.getElementById('vga-label').textContent = document.getElementById('vga-slider').value + ' MB'; }
-    function setStatus(text, running=false) {
-        document.getElementById('status-text').textContent = text;
-        document.getElementById('status-dot').className = 'status-dot' + (running ? ' running' : '');
-    }
+function lg(msg,t=''){
+  const d=document.getElementById('log');
+  const s=document.createElement('span');
+  const ts=new Date().toLocaleTimeString('en',{hour12:false});
+  s.textContent=ts+' › '+msg;
+  if(t)s.className='l-'+t;
+  d.appendChild(s);d.scrollTop=d.scrollHeight;
+}
+function clrLog(){document.getElementById('log').innerHTML='';lg('—')}
 
-    function selectISO(type, el) {
-        document.querySelectorAll('.iso-card, .upload-card').forEach(c => c.classList.remove('selected'));
-        document.getElementById('upload-check').style.cssText += ';opacity:0;transform:scale(0.5)';
-        selectedISO = type;
-        el.classList.add('selected');
-        document.getElementById('btn-start').disabled = false;
-        document.getElementById('win-title').textContent = isoMap[type].name;
-        log('Selected: ' + isoMap[type].name, 'info');
-    }
+function setStatus(txt,on=false){
+  document.getElementById('s-txt').textContent=txt;
+  document.getElementById('s-dot').className='dot'+(on?' on':'');
+}
 
-    function handleFileUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        if (customISOUrl) URL.revokeObjectURL(customISOUrl);
-        customISOFile = file;
-        customISOUrl = URL.createObjectURL(file);
-        document.querySelectorAll('.iso-card').forEach(c => c.classList.remove('selected'));
-        document.getElementById('card-custom').classList.add('selected');
-        const check = document.getElementById('upload-check');
-        check.style.opacity = '1'; check.style.transform = 'scale(1)';
-        selectedISO = 'custom';
-        document.getElementById('upload-label').textContent = '✓ ' + file.name;
-        document.getElementById('btn-start').disabled = false;
-        document.getElementById('win-title').textContent = file.name;
-        log('Loaded custom ISO: ' + file.name + ' (' + (file.size/1024/1024).toFixed(1) + ' MB)', 'success');
-    }
+function updMem(){document.getElementById('v-mem').textContent=document.getElementById('r-mem').value+' MB'}
+function updVga(){document.getElementById('v-vga').textContent=document.getElementById('r-vga').value+' MB'}
 
-    // Drag and drop
-    const uploadCard = document.getElementById('card-custom');
-    uploadCard.addEventListener('dragover', e => { e.preventDefault(); uploadCard.classList.add('drag-over'); });
-    uploadCard.addEventListener('dragleave', () => uploadCard.classList.remove('drag-over'));
-    uploadCard.addEventListener('drop', e => {
-        e.preventDefault(); uploadCard.classList.remove('drag-over');
-        const file = e.dataTransfer.files[0];
-        if (file && file.name.endsWith('.iso')) handleFileUpload({ target: { files: [file] } });
+function clearCards(){
+  document.querySelectorAll('.iso-card').forEach(c=>c.classList.remove('active'));
+  document.getElementById('c-custom').classList.remove('active');
+  document.getElementById('u-check').style.opacity='0';
+}
+
+function pick(type,el){
+  clearCards();
+  sel=type;
+  el.classList.add('active');
+  document.getElementById('btn-boot').disabled=false;
+  document.getElementById('emu-title').textContent=isoMap[type].name;
+  lg('Image selected: '+isoMap[type].name,'info');
+}
+
+function onFile(e){
+  const f=e.target.files[0];if(!f)return;
+  if(custUrl)URL.revokeObjectURL(custUrl);
+  custFile=f;custUrl=URL.createObjectURL(f);
+  clearCards();
+  sel='custom';
+  document.getElementById('c-custom').classList.add('active');
+  document.getElementById('u-check').style.opacity='1';
+  document.getElementById('u-name').textContent=f.name;
+  document.getElementById('btn-boot').disabled=false;
+  document.getElementById('emu-title').textContent=f.name;
+  lg('Custom ISO loaded: '+f.name+' ('+( f.size/1024/1024).toFixed(1)+' MB)','ok');
+}
+
+// drag & drop
+const uz=document.getElementById('c-custom');
+uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('drag-over')});
+uz.addEventListener('dragleave',()=>uz.classList.remove('drag-over'));
+uz.addEventListener('drop',e=>{
+  e.preventDefault();uz.classList.remove('drag-over');
+  const f=e.dataTransfer.files[0];
+  if(f&&f.name.endsWith('.iso'))onFile({target:{files:[f]}});
+});
+
+function stop(){
+  if(emu){emu.stop();emu=null;}
+  running=false;
+  document.getElementById('screen_container').style.display='none';
+  document.getElementById('screen_container').innerHTML='';
+  document.getElementById('idle').classList.remove('gone');
+  document.getElementById('loader').classList.remove('show');
+  document.getElementById('btn-stop').disabled=true;
+  document.getElementById('btn-boot').disabled=sel===null;
+  setStatus('STANDBY');
+  lg('Emulator stopped.','warn');
+}
+
+function boot(){
+  if(!sel)return;
+  if(running)stop();
+  const mem=parseInt(document.getElementById('r-mem').value);
+  const vga=parseInt(document.getElementById('r-vga').value);
+  let url,name;
+  if(sel==='custom'){
+    if(!custUrl){lg('No ISO file loaded.','err');return;}
+    url=custUrl;name=custFile.name;
+  }else{url=isoMap[sel].url;name=isoMap[sel].name;}
+
+  document.getElementById('idle').classList.add('gone');
+  document.getElementById('loader').classList.add('show');
+  document.getElementById('loader-txt').textContent='Loading '+name+' …';
+  document.getElementById('btn-boot').disabled=true;
+  document.getElementById('btn-stop').disabled=true;
+  setStatus('BOOTING',true);
+  lg('Booting: '+name,'info');
+  lg('RAM: '+mem+'MB  VGA: '+vga+'MB','info');
+
+  try{
+    const sc=document.getElementById('screen_container');
+    sc.style.display='block';
+    emu=new V86({
+      wasm_path:'v86.wasm',
+      memory_size:mem*1024*1024,
+      vga_memory_size:vga*1024*1024,
+      screen_container:sc,
+      bios:{url:'seabios.bin'},
+      vga_bios:{url:'vgabios.bin'},
+      cdrom:{url:url},
+      boot_order:0x132,
+      autostart:true
     });
+    emu.add_listener('emulator-ready',()=>{
+      document.getElementById('loader').classList.remove('show');
+      running=true;
+      document.getElementById('btn-stop').disabled=false;
+      setStatus('RUNNING',true);
+      lg(name+' running.','ok');
+    });
+    emu.add_listener('emulator-stopped',()=>{
+      setStatus('HALTED');lg('Halted.','warn');
+      running=false;
+      document.getElementById('btn-stop').disabled=true;
+      document.getElementById('btn-boot').disabled=false;
+      document.getElementById('loader').classList.remove('show');
+    });
+    setTimeout(()=>{
+      if(document.getElementById('loader').classList.contains('show')){
+        document.getElementById('loader').classList.remove('show');
+        running=true;document.getElementById('btn-stop').disabled=false;
+        setStatus('RUNNING',true);lg('Running (timeout fallback).','warn');
+      }
+    },6000);
+  }catch(err){
+    document.getElementById('loader').classList.remove('show');
+    document.getElementById('idle').classList.remove('gone');
+    document.getElementById('screen_container').style.display='none';
+    document.getElementById('btn-boot').disabled=false;
+    setStatus('ERROR');lg('Error: '+err.message,'err');
+  }
+}
 
-    function stopEmulator() {
-        if (emulator) { emulator.stop(); emulator = null; }
-        isRunning = false;
-        document.getElementById('screen_container').style.display = 'none';
-        document.getElementById('screen_container').innerHTML = '';
-        document.getElementById('idle-state').classList.remove('hidden');
-        document.getElementById('btn-stop').disabled = true;
-        document.getElementById('btn-start').disabled = selectedISO === null;
-        document.getElementById('loading-overlay').classList.remove('active');
-        setStatus('STANDBY');
-        log('Emulator stopped.', 'warn');
-    }
+function fs(){
+  const f=document.getElementById('emu-frame');
+  if(!document.fullscreenElement)f.requestFullscreen().catch(e=>lg('Fullscreen: '+e.message,'warn'));
+  else document.exitFullscreen();
+}
 
-    async function startEmulator() {
-        if (!selectedISO) return;
-        if (isRunning) stopEmulator();
-        const memMB = parseInt(document.getElementById('mem-slider').value);
-        const vgaMB = parseInt(document.getElementById('vga-slider').value);
-        let isoUrl, isoName;
-        if (selectedISO === 'custom') {
-            if (!customISOUrl) { log('No custom ISO loaded!', 'error'); return; }
-            isoUrl = customISOUrl; isoName = customISOFile.name;
-        } else { isoUrl = isoMap[selectedISO].url; isoName = isoMap[selectedISO].name; }
-        document.getElementById('idle-state').classList.add('hidden');
-        document.getElementById('loading-overlay').classList.add('active');
-        document.getElementById('loading-sub').textContent = 'Loading ' + isoName + '…';
-        document.getElementById('btn-start').disabled = true;
-        document.getElementById('btn-stop').disabled = true;
-        setStatus('BOOTING', true);
-        log('Starting emulator: ' + isoName, 'info');
-        log('Memory: ' + memMB + 'MB | VGA: ' + vgaMB + 'MB', 'info');
-        try {
-            const sc = document.getElementById('screen_container');
-            sc.style.display = 'block';
-            emulator = new V86({
-                wasm_path: 'v86.wasm',
-                memory_size: memMB * 1024 * 1024,
-                vga_memory_size: vgaMB * 1024 * 1024,
-                screen_container: sc,
-                bios: { url: 'seabios.bin' },
-                vga_bios: { url: 'vgabios.bin' },
-                cdrom: { url: isoUrl },
-                boot_order: 0x132,
-                autostart: true
-            });
-            emulator.add_listener('emulator-ready', () => {
-                document.getElementById('loading-overlay').classList.remove('active');
-                isRunning = true;
-                document.getElementById('btn-stop').disabled = false;
-                setStatus('RUNNING', true);
-                log(isoName + ' booted successfully!', 'success');
-            });
-            emulator.add_listener('emulator-stopped', () => {
-                setStatus('HALTED'); log('Emulator halted.', 'warn');
-                isRunning = false;
-                document.getElementById('btn-stop').disabled = true;
-                document.getElementById('btn-start').disabled = false;
-                document.getElementById('loading-overlay').classList.remove('active');
-            });
-            setTimeout(() => {
-                if (document.getElementById('loading-overlay').classList.contains('active')) {
-                    document.getElementById('loading-overlay').classList.remove('active');
-                    isRunning = true;
-                    document.getElementById('btn-stop').disabled = false;
-                    setStatus('RUNNING', true);
-                    log('Emulator running (fallback timeout).', 'warn');
-                }
-            }, 6000);
-        } catch(err) {
-            document.getElementById('loading-overlay').classList.remove('active');
-            document.getElementById('idle-state').classList.remove('hidden');
-            document.getElementById('screen_container').style.display = 'none';
-            document.getElementById('btn-start').disabled = false;
-            setStatus('ERROR');
-            log('Error: ' + err.message, 'error');
-        }
-    }
-
-    function toggleFullscreen() {
-        const frame = document.getElementById('emulator-frame');
-        if (!document.fullscreenElement) frame.requestFullscreen().catch(e => log('Fullscreen error: ' + e.message, 'warn'));
-        else document.exitFullscreen();
-    }
-
-    updateMemLabel(); updateVgaLabel();
-    log('NovaAI OS Emulator ready. Select an ISO to begin.', 'info');
+updMem();updVga();
+lg('CloudCore ready.','ok');
 </script>
 </body>
 </html>
