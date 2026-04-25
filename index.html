@@ -33,8 +33,8 @@
     <div id="screen_container"></div>
 
     <script>
-     window.onload = function () {
-    new V86Starter({
+window.onload = function () {
+    new V86({
         wasm_path: "v86.wasm",
 
         memory_size: 512 * 1024 * 1024,
@@ -58,7 +58,7 @@
         autostart: true
     });
 };
-    </script>
+</script>
 
 </body>
 </html>
