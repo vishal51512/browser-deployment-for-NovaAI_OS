@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,806 +9,415 @@
 <script src="https://copy.sh/v86/build/libv86.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --black:#000000;
-  --white:#ffffff;
-  --off:#0a0a0a;
-  --dim:#111111;
-  --line:#1a1a1a;
-  --line2:#222222;
-  --muted:#3a3a3a;
-  --subtle:#555555;
-  --text:#cccccc;
-  --text2:#888888;
-  --accent:#ffffff;
-  --red:#ff3333;
-  --green:#33ff88;
+
+[data-theme="dark"]{
+  --bg:#000000; --bg-off:#0a0a0a; --bg-dim:#111111;
+  --line:#1a1a1a; --line2:#222222; --muted:#3a3a3a; --subtle:#555555;
+  --text:#cccccc; --text2:#888888; --fg:#ffffff; --fg-inv:#000000;
+  --red:#ff3333; --green:#33ff88;
+  --header-bg:rgba(0,0,0,0.96);
+  --ghost-stroke:#222222;
+  --boot-bg:#ffffff; --boot-fg:#000000; --boot-dis:#111111;
+  --loader-line:#ffffff;
+}
+
+[data-theme="light"]{
+  --bg:#f4f4ef; --bg-off:#ebebе6; --bg-dim:#e2e2dd;
+  --line:#d5d5d0; --line2:#c5c5c0; --muted:#aaaaaa; --subtle:#777777;
+  --text:#333333; --text2:#666666; --fg:#000000; --fg-inv:#ffffff;
+  --red:#cc2200; --green:#1a7a3a;
+  --header-bg:rgba(244,244,239,0.96);
+  --ghost-stroke:#cccccc;
+  --boot-bg:#000000; --boot-fg:#ffffff; --boot-dis:#cccccc;
+  --loader-line:#000000;
 }
 
 html{scroll-behavior:smooth}
-
 body{
-  background:var(--black);
-  color:var(--text);
-  font-family:'Syne',sans-serif;
-  min-height:100vh;
-  cursor:crosshair;
-  overflow-x:hidden;
+  background:var(--bg); color:var(--text);
+  font-family:'Syne',sans-serif; min-height:100vh;
+  cursor:crosshair; overflow-x:hidden;
+  transition:background .35s,color .35s;
 }
-
-/* NOISE TEXTURE */
 body::before{
-  content:'';
-  position:fixed;
-  inset:0;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-  background-repeat:repeat;
-  background-size:128px 128px;
-  pointer-events:none;
-  z-index:1000;
-  mix-blend-mode:overlay;
+  content:''; position:fixed; inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  background-size:128px; pointer-events:none; z-index:1000; mix-blend-mode:overlay;
 }
 
-/* ─── HEADER ─── */
+/* HEADER */
 header{
   position:sticky;top:0;z-index:500;
   display:flex;align-items:center;justify-content:space-between;
-  padding:0 40px;
-  height:56px;
+  padding:0 40px;height:56px;
   border-bottom:1px solid var(--line);
-  background:rgba(0,0,0,0.96);
-  backdrop-filter:blur(12px);
+  background:var(--header-bg); backdrop-filter:blur(12px);
+  transition:background .35s,border-color .35s;
 }
-
-.wordmark{
-  font-family:'Syne',sans-serif;
-  font-size:0.85rem;
-  font-weight:800;
-  letter-spacing:6px;
-  text-transform:uppercase;
-  color:var(--white);
-}
-
+.wordmark{font-size:.85rem;font-weight:800;letter-spacing:6px;text-transform:uppercase;color:var(--fg);transition:color .35s}
 .wordmark span{color:var(--subtle);font-weight:400}
+.header-right{display:flex;align-items:center;gap:20px}
+.pill{display:flex;align-items:center;gap:7px;font-family:'Syne Mono',monospace;font-size:.65rem;letter-spacing:2px;color:var(--subtle);text-transform:uppercase}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--muted);transition:all .4s}
+.sdot.on{background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
 
-.header-right{display:flex;align-items:center;gap:24px}
-
-.pill{
-  display:flex;align-items:center;gap:7px;
-  font-family:'Syne Mono',monospace;
-  font-size:0.65rem;
-  letter-spacing:2px;
-  color:var(--subtle);
-  text-transform:uppercase;
+/* THEME TOGGLE */
+.themetoggle{
+  display:flex;align-items:center;gap:8px;cursor:pointer;
+  background:none;border:1px solid var(--line);
+  padding:5px 12px;font-family:'Syne Mono',monospace;
+  font-size:.6rem;letter-spacing:2px;text-transform:uppercase;
+  color:var(--subtle);transition:all .2s;
 }
+.themetoggle:hover{border-color:var(--muted);color:var(--text)}
+.ticon{font-size:.8rem}
 
-.dot{
-  width:6px;height:6px;
-  border-radius:50%;
-  background:var(--muted);
-  transition:all 0.4s;
-}
-.dot.on{background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-
-/* ─── HERO ─── */
+/* HERO */
 .hero{
-  padding:120px 40px 80px;
-  border-bottom:1px solid var(--line);
-  position:relative;
-  overflow:hidden;
+  padding:120px 40px 80px;border-bottom:1px solid var(--line);
+  position:relative;overflow:hidden;transition:border-color .35s;
 }
-
 .hero::after{
-  content:'';
-  position:absolute;
-  top:-1px;right:0;
-  width:1px;height:100%;
-  background:linear-gradient(to bottom, transparent, var(--line2) 30%, var(--line2) 70%, transparent);
+  content:'';position:absolute;top:-1px;right:0;width:1px;height:100%;
+  background:linear-gradient(to bottom,transparent,var(--line2) 30%,var(--line2) 70%,transparent);
 }
-
-.hero-eyebrow{
-  font-family:'Syne Mono',monospace;
-  font-size:0.65rem;
-  letter-spacing:4px;
-  color:var(--subtle);
-  text-transform:uppercase;
-  margin-bottom:32px;
-  display:flex;align-items:center;gap:12px;
+.eyebrow{
+  font-family:'Syne Mono',monospace;font-size:.65rem;letter-spacing:4px;
+  color:var(--subtle);text-transform:uppercase;margin-bottom:32px;
+  display:flex;align-items:center;gap:12px;transition:color .35s;
 }
-
-.hero-eyebrow::before{
-  content:'';
-  display:inline-block;
-  width:24px;height:1px;
-  background:var(--muted);
-}
-
+.eyebrow::before{content:'';width:24px;height:1px;background:var(--muted);flex-shrink:0}
 .hero h1{
-  font-size:clamp(3.5rem,9vw,8rem);
-  font-weight:800;
-  letter-spacing:-3px;
-  line-height:0.9;
-  color:var(--white);
-  margin-bottom:40px;
+  font-size:clamp(3.5rem,9vw,8rem);font-weight:800;letter-spacing:-3px;
+  line-height:.9;color:var(--fg);margin-bottom:40px;transition:color .35s;
 }
-
-.hero h1 .dim{
-  color:transparent;
-  -webkit-text-stroke:1px var(--line2);
-}
-
-.hero-sub{
-  font-size:0.8rem;
-  color:var(--text2);
-  letter-spacing:1px;
-  line-height:1.8;
-  max-width:340px;
-}
-
+.hero h1 .ghost{color:transparent;-webkit-text-stroke:1px var(--ghost-stroke);transition:-webkit-text-stroke-color .35s}
+.hero-sub{font-size:.8rem;color:var(--text2);letter-spacing:1px;line-height:1.8;max-width:340px;transition:color .35s}
 .hero-meta{
-  position:absolute;
-  bottom:40px;right:40px;
-  font-family:'Syne Mono',monospace;
-  font-size:0.6rem;
-  color:var(--muted);
-  letter-spacing:2px;
-  text-align:right;
-  line-height:2;
+  position:absolute;bottom:40px;right:40px;
+  font-family:'Syne Mono',monospace;font-size:.6rem;
+  color:var(--muted);letter-spacing:2px;text-align:right;line-height:2;transition:color .35s;
 }
 
-/* ─── SECTIONS ─── */
-section{border-bottom:1px solid var(--line)}
-
-.section-inner{
-  max-width:1200px;
-  margin:0 auto;
-  padding:60px 40px;
+/* SECTIONS */
+section{border-bottom:1px solid var(--line);transition:border-color .35s}
+.si{max-width:1200px;margin:0 auto;padding:60px 40px}
+.slabel{
+  font-family:'Syne Mono',monospace;font-size:.6rem;letter-spacing:4px;
+  color:var(--muted);text-transform:uppercase;margin-bottom:32px;
+  display:flex;align-items:center;gap:16px;transition:color .35s;
 }
+.slabel::after{content:'';flex:1;height:1px;background:var(--line);transition:background .35s}
 
-.step-label{
-  font-family:'Syne Mono',monospace;
-  font-size:0.6rem;
-  letter-spacing:4px;
-  color:var(--muted);
-  text-transform:uppercase;
-  margin-bottom:32px;
-  display:flex;align-items:center;gap:16px;
+/* ISO GRID */
+.isogrid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  border:1px solid var(--line);transition:border-color .35s;
 }
+@media(max-width:760px){.isogrid{grid-template-columns:1fr}}
 
-.step-label::after{content:'';flex:1;height:1px;background:var(--line)}
-
-/* ─── ISO CARDS ─── */
-.iso-grid{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  border:1px solid var(--line);
+.isocard{
+  padding:32px;border-right:1px solid var(--line);
+  cursor:pointer;transition:background .2s,border-color .35s;position:relative;
 }
-
-@media(max-width:760px){.iso-grid{grid-template-columns:1fr}}
-
-.iso-card{
-  padding:32px;
-  border-right:1px solid var(--line);
-  cursor:pointer;
-  transition:background 0.2s;
-  position:relative;
-}
-
-.iso-card:last-child{border-right:none}
-
-.iso-card:hover{background:var(--off)}
-
-.iso-card.active{
-  background:var(--dim);
-}
-
-.iso-card.active::before{
-  content:'';
-  position:absolute;
-  top:0;left:0;right:0;
-  height:1px;
-  background:var(--white);
-}
-
-.card-num{
-  font-family:'Syne Mono',monospace;
-  font-size:0.6rem;
-  color:var(--muted);
-  letter-spacing:2px;
-  margin-bottom:24px;
-}
-
-.card-title{
-  font-size:1.1rem;
-  font-weight:700;
-  color:var(--white);
-  letter-spacing:-0.5px;
-  margin-bottom:8px;
-}
-
-.card-body{
-  font-size:0.72rem;
-  color:var(--text2);
-  line-height:1.7;
-  margin-bottom:20px;
-}
-
-.card-tags{display:flex;gap:6px;flex-wrap:wrap}
-
+.isocard:last-child{border-right:none}
+.isocard:hover{background:var(--bg-off)}
+.isocard.on{background:var(--bg-dim)}
+.isocard.on::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:var(--fg);transition:background .35s}
+.cnum{font-family:'Syne Mono',monospace;font-size:.6rem;color:var(--muted);letter-spacing:2px;margin-bottom:24px;transition:color .35s}
+.ctitle{font-size:1.1rem;font-weight:700;color:var(--fg);letter-spacing:-.5px;margin-bottom:8px;transition:color .35s}
+.cbody{font-size:.72rem;color:var(--text2);line-height:1.7;margin-bottom:20px;transition:color .35s}
+.ctags{display:flex;gap:6px;flex-wrap:wrap}
 .tag{
-  font-family:'Syne Mono',monospace;
-  font-size:0.58rem;
-  letter-spacing:1px;
-  text-transform:uppercase;
-  padding:3px 8px;
-  border:1px solid var(--line2);
-  color:var(--subtle);
+  font-family:'Syne Mono',monospace;font-size:.58rem;letter-spacing:1px;
+  text-transform:uppercase;padding:3px 8px;
+  border:1px solid var(--line2);color:var(--subtle);transition:all .35s;
 }
-
-.iso-card.active .tag{border-color:var(--muted);color:var(--text2)}
-
-.active-mark{
-  position:absolute;top:20px;right:20px;
-  width:18px;height:18px;
-  border:1px solid var(--white);
-  border-radius:50%;
+.isocard.on .tag{border-color:var(--muted);color:var(--text2)}
+.amark{
+  position:absolute;top:20px;right:20px;width:18px;height:18px;
+  border:1px solid var(--fg);border-radius:50%;
   display:flex;align-items:center;justify-content:center;
-  font-size:9px;
-  color:var(--white);
-  opacity:0;
-  transition:opacity 0.2s;
+  font-size:9px;color:var(--fg);opacity:0;transition:opacity .2s,border-color .35s,color .35s;
 }
+.isocard.on .amark{opacity:1}
 
-.iso-card.active .active-mark{opacity:1}
-
-/* UPLOAD ZONE */
-.upload-zone{
-  border:1px solid var(--line);
-  border-style:dashed;
-  padding:40px 32px;
-  cursor:pointer;
-  transition:all 0.2s;
-  text-align:center;
-  grid-column:span 1;
+/* UPLOAD */
+.upzone{
+  border:1px dashed var(--line);padding:40px 32px;
+  cursor:pointer;transition:all .2s;text-align:center;position:relative;
 }
-
-.upload-zone:hover,.upload-zone.drag-over{
-  background:var(--off);
-  border-color:var(--muted);
-}
-
-.upload-zone.active{
-  background:var(--dim);
-  border-style:solid;
-  border-color:var(--white);
-}
-
-.upload-zone.active::before{display:none}
-
-.upload-icon-wrap{
-  font-size:2rem;
-  margin-bottom:16px;
-  filter:grayscale(1);
-}
-
-.upload-title{
-  font-size:1rem;
-  font-weight:700;
-  color:var(--white);
-  letter-spacing:-0.3px;
-  margin-bottom:6px;
-}
-
-.upload-hint{
-  font-size:0.68rem;
-  color:var(--text2);
-  letter-spacing:0.5px;
-}
-
-.upload-file-name{
-  margin-top:12px;
-  font-family:'Syne Mono',monospace;
-  font-size:0.65rem;
-  color:var(--text);
-  letter-spacing:1px;
-  word-break:break-all;
-}
-
+.upzone:hover,.upzone.drag{background:var(--bg-off);border-color:var(--muted)}
+.upzone.on{background:var(--bg-dim);border-style:solid;border-color:var(--fg)}
+.upicon{font-size:2rem;margin-bottom:16px;filter:grayscale(1)}
+.uptitle{font-size:1rem;font-weight:700;color:var(--fg);letter-spacing:-.3px;margin-bottom:6px;transition:color .35s}
+.uphint{font-size:.68rem;color:var(--text2);transition:color .35s}
+.upname{margin-top:12px;font-family:'Syne Mono',monospace;font-size:.65rem;color:var(--text);letter-spacing:1px;word-break:break-all;transition:color .35s}
 input[type=file]{display:none}
 
-/* ─── CONTROLS ─── */
-.controls-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr auto auto;
-  gap:0;
-  border:1px solid var(--line);
-  align-items:center;
+/* CONTROLS */
+.ctrlgrid{
+  display:grid;grid-template-columns:1fr 1fr auto auto;
+  border:1px solid var(--line);align-items:center;transition:border-color .35s;
 }
+@media(max-width:700px){.ctrlgrid{grid-template-columns:1fr 1fr}}
+.ctrlcell{padding:20px 28px;border-right:1px solid var(--line);transition:border-color .35s}
+.ctrllbl{font-family:'Syne Mono',monospace;font-size:.58rem;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:12px;transition:color .35s}
+.ctrlrow{display:flex;align-items:center;gap:12px}
+input[type=range]{-webkit-appearance:none;flex:1;height:1px;background:var(--line2);outline:none;border:none;transition:background .35s}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:var(--fg);border-radius:50%;cursor:pointer;transition:background .35s}
+.ctrlval{font-family:'Syne Mono',monospace;font-size:.7rem;color:var(--fg);min-width:52px;text-align:right;transition:color .35s}
 
-@media(max-width:700px){.controls-grid{grid-template-columns:1fr 1fr;}}
+.btn{font-family:'Syne',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;padding:0 32px;height:100%;min-height:64px;border:none;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btnboot{background:var(--boot-bg);color:var(--boot-fg)}
+.btnboot:hover:not(:disabled){opacity:.85}
+.btnboot:disabled{background:var(--boot-dis);color:var(--muted);cursor:not-allowed}
+.btnstop{background:var(--bg);color:var(--subtle);border-left:1px solid var(--line);transition:all .2s,background .35s,border-color .35s}
+.btnstop:hover:not(:disabled){color:var(--red)}
+.btnstop:disabled{opacity:.3;cursor:not-allowed}
 
-.ctrl-cell{
-  padding:20px 28px;
-  border-right:1px solid var(--line);
+/* EMULATOR */
+.emuwrap{border:1px solid var(--line);transition:border-color .35s}
+.emubar{
+  display:flex;align-items:center;height:40px;padding:0 20px;gap:16px;
+  border-bottom:1px solid var(--line);background:var(--bg-off);
+  transition:background .35s,border-color .35s;
 }
+.edots{display:flex;gap:6px}
+.edot{width:10px;height:10px;border-radius:50%;background:var(--line2);transition:background .35s}
+.emutitle{font-family:'Syne Mono',monospace;font-size:.62rem;color:var(--muted);letter-spacing:2px;flex:1;text-align:center;transition:color .35s}
+.emufsbtn{font-family:'Syne Mono',monospace;font-size:.6rem;color:var(--muted);background:none;border:1px solid var(--line2);padding:3px 10px;cursor:pointer;letter-spacing:1px;transition:all .2s}
+.emufsbtn:hover{border-color:var(--muted);color:var(--text)}
+.emuscreen{background:#000;min-height:520px;display:flex;align-items:center;justify-content:center;position:relative}
+#sc{width:100%;min-height:520px;display:none}
+#sc canvas{display:block;width:100%!important;height:auto!important}
 
-.ctrl-cell:last-child{border-right:none}
-
-.ctrl-label{
-  font-family:'Syne Mono',monospace;
-  font-size:0.58rem;
-  letter-spacing:3px;
-  color:var(--muted);
-  text-transform:uppercase;
-  margin-bottom:12px;
-}
-
-.ctrl-slider-row{display:flex;align-items:center;gap:12px}
-
-input[type=range]{
-  -webkit-appearance:none;
-  flex:1;
-  height:1px;
-  background:var(--line2);
-  outline:none;
-  border:none;
-}
-
-input[type=range]::-webkit-slider-thumb{
-  -webkit-appearance:none;
-  width:12px;height:12px;
-  background:var(--white);
-  border-radius:50%;
-  cursor:pointer;
-}
-
-.ctrl-val{
-  font-family:'Syne Mono',monospace;
-  font-size:0.7rem;
-  color:var(--white);
-  min-width:52px;
-  text-align:right;
-}
-
-.btn{
-  font-family:'Syne',sans-serif;
-  font-size:0.7rem;
-  font-weight:700;
-  letter-spacing:3px;
-  text-transform:uppercase;
-  padding:0 32px;
-  height:100%;
-  min-height:64px;
-  border:none;
-  cursor:pointer;
-  transition:all 0.15s;
-  white-space:nowrap;
-}
-
-.btn-boot{
-  background:var(--white);
-  color:var(--black);
-}
-
-.btn-boot:hover:not(:disabled){background:#ddd}
-.btn-boot:disabled{background:var(--dim);color:var(--muted);cursor:not-allowed}
-
-.btn-stop{
-  background:var(--black);
-  color:var(--subtle);
-  border-left:1px solid var(--line);
-}
-
-.btn-stop:hover:not(:disabled){color:var(--red)}
-.btn-stop:disabled{cursor:not-allowed;opacity:0.4}
-
-/* ─── EMULATOR ─── */
-.emu-wrap{border:1px solid var(--line)}
-
-.emu-bar{
-  display:flex;align-items:center;
-  height:40px;
-  padding:0 20px;
-  border-bottom:1px solid var(--line);
-  background:var(--off);
-  gap:16px;
-}
-
-.emu-dots{display:flex;gap:6px}
-.edot{width:10px;height:10px;border-radius:50%;background:var(--line2)}
-
-.emu-title{
-  font-family:'Syne Mono',monospace;
-  font-size:0.62rem;
-  color:var(--muted);
-  letter-spacing:2px;
-  flex:1;text-align:center;
-}
-
-.emu-fs-btn{
-  font-family:'Syne Mono',monospace;
-  font-size:0.6rem;
-  color:var(--muted);
-  background:none;
-  border:1px solid var(--line2);
-  padding:3px 10px;
-  cursor:pointer;
-  letter-spacing:1px;
-  transition:all 0.2s;
-}
-
-.emu-fs-btn:hover{border-color:var(--muted);color:var(--text)}
-
-.emu-screen{
-  background:#000;
-  min-height:520px;
-  display:flex;align-items:center;justify-content:center;
-  position:relative;
-}
-
-#screen_container{width:100%;min-height:520px;display:none}
-#screen_container canvas{display:block;width:100%!important;height:auto!important}
-
-/* IDLE */
-.idle{
-  display:flex;flex-direction:column;align-items:center;gap:16px;
-  padding:80px 20px;width:100%;
-}
-
+.idle{display:flex;flex-direction:column;align-items:center;gap:16px;padding:80px 20px;width:100%}
 .idle.gone{display:none}
+.idleglyph{font-size:3rem;filter:grayscale(1);opacity:.3}
+.idletext{font-family:'Syne Mono',monospace;font-size:.65rem;letter-spacing:4px;color:var(--muted);text-transform:uppercase;transition:color .35s}
 
-.idle-glyph{
-  font-size:3rem;
-  filter:grayscale(1);
-  opacity:0.3;
-}
-
-.idle-text{
-  font-family:'Syne Mono',monospace;
-  font-size:0.65rem;
-  letter-spacing:4px;
-  color:var(--muted);
-  text-transform:uppercase;
-}
-
-/* LOADER */
-.loader{
-  position:absolute;inset:0;
-  background:#000;
-  display:none;
-  flex-direction:column;
-  align-items:center;justify-content:center;
-  gap:24px;
-  z-index:50;
-}
-
+.loader{position:absolute;inset:0;background:#000;display:none;flex-direction:column;align-items:center;justify-content:center;gap:24px;z-index:50}
 .loader.show{display:flex}
-
-.loader-bar-wrap{
-  width:200px;height:1px;
-  background:var(--line2);
-  position:relative;
-  overflow:hidden;
-}
-
-.loader-bar{
-  position:absolute;top:0;left:-100%;
-  width:100%;height:100%;
-  background:var(--white);
-  animation:slide 1.4s ease-in-out infinite;
-}
-
+.lbarwrap{width:200px;height:1px;background:var(--line2);position:relative;overflow:hidden}
+.lbar{position:absolute;top:0;left:-100%;width:100%;height:100%;background:var(--loader-line);animation:slide 1.4s ease-in-out infinite;transition:background .35s}
 @keyframes slide{0%{left:-100%}100%{left:100%}}
+.llabel{font-family:'Syne Mono',monospace;font-size:.62rem;letter-spacing:4px;color:var(--muted);text-transform:uppercase}
 
-.loader-label{
-  font-family:'Syne Mono',monospace;
-  font-size:0.62rem;
-  letter-spacing:4px;
-  color:var(--muted);
-  text-transform:uppercase;
-}
-
-/* ─── LOG ─── */
-.log-wrap{
-  border:1px solid var(--line);
-  border-top:none;
-}
-
-.log-bar{
-  display:flex;align-items:center;
-  padding:0 20px;
-  height:36px;
-  border-bottom:1px solid var(--line);
-  background:var(--off);
-}
-
-.log-label{
-  font-family:'Syne Mono',monospace;
-  font-size:0.58rem;
-  letter-spacing:3px;
-  color:var(--muted);
-  text-transform:uppercase;
-  flex:1;
-}
-
-.log-clr{
-  font-family:'Syne Mono',monospace;
-  font-size:0.58rem;
-  color:var(--muted);
-  background:none;
-  border:none;
-  cursor:pointer;
-  letter-spacing:1px;
-  transition:color 0.2s;
-}
-
-.log-clr:hover{color:var(--red)}
-
-#log{
-  padding:16px 20px;
-  font-family:'Syne Mono',monospace;
-  font-size:0.65rem;
-  line-height:2;
-  color:var(--muted);
-  max-height:140px;
-  overflow-y:auto;
-}
-
+/* LOG */
+.logwrap{border-top:1px solid var(--line);transition:border-color .35s}
+.logbar{display:flex;align-items:center;padding:0 20px;height:36px;border-bottom:1px solid var(--line);background:var(--bg-off);transition:background .35s,border-color .35s}
+.loglbl{font-family:'Syne Mono',monospace;font-size:.58rem;letter-spacing:3px;color:var(--muted);text-transform:uppercase;flex:1;transition:color .35s}
+.logclr{font-family:'Syne Mono',monospace;font-size:.58rem;color:var(--muted);background:none;border:none;cursor:pointer;letter-spacing:1px;transition:color .2s}
+.logclr:hover{color:var(--red)}
+#log{padding:16px 20px;font-family:'Syne Mono',monospace;font-size:.65rem;line-height:2;color:var(--muted);max-height:140px;overflow-y:auto}
 #log span{display:block}
-.l-ok{color:var(--green)!important}
-.l-warn{color:#ffaa33!important}
-.l-err{color:var(--red)!important}
-.l-info{color:var(--text2)!important}
+.lok{color:var(--green)!important}
+.lwarn{color:#997700!important}
+.lerr{color:var(--red)!important}
+.linfo{color:var(--text2)!important}
 
-/* ─── FOOTER ─── */
-footer{
-  padding:32px 40px;
-  display:flex;align-items:center;justify-content:space-between;
-  border-top:1px solid var(--line);
-}
+/* FOOTER */
+footer{padding:32px 40px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);transition:border-color .35s}
+.fleft{font-family:'Syne Mono',monospace;font-size:.6rem;letter-spacing:2px;color:var(--muted)}
+.fright{font-family:'Syne Mono',monospace;font-size:.6rem;letter-spacing:2px;color:var(--muted)}
+.fright a{color:var(--subtle);text-decoration:none;transition:color .2s}
+.fright a:hover{color:var(--text)}
 
-.footer-left{
-  font-family:'Syne Mono',monospace;
-  font-size:0.6rem;
-  letter-spacing:2px;
-  color:var(--muted);
-}
-
-.footer-right{
-  font-family:'Syne Mono',monospace;
-  font-size:0.6rem;
-  letter-spacing:2px;
-  color:var(--muted);
-}
-
-.footer-right a{color:var(--subtle);text-decoration:none;transition:color 0.2s}
-.footer-right a:hover{color:var(--text)}
-
-/* scrollbar */
 ::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-track{background:var(--black)}
+::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--line2)}
 
 @media(max-width:600px){
-  header{padding:0 20px}
+  header{padding:0 16px}
   .hero{padding:80px 20px 60px}
-  .section-inner{padding:40px 20px}
+  .si{padding:40px 20px}
   footer{padding:24px 20px;flex-direction:column;gap:12px;text-align:center}
+  .tlabel{display:none}
 }
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
 <header>
   <div class="wordmark">Cloud<span>core</span></div>
   <div class="header-right">
     <div class="pill">
-      <div class="dot" id="s-dot"></div>
-      <span id="s-txt">STANDBY</span>
+      <div class="sdot" id="sdot"></div>
+      <span id="stxt">STANDBY</span>
     </div>
+    <button class="themetoggle" onclick="toggleTheme()">
+      <span class="ticon" id="ticon">☀</span>
+      <span class="tlabel" id="tlabel">LIGHT</span>
+    </button>
   </div>
 </header>
 
-<!-- HERO -->
 <div class="hero">
-  <div class="hero-eyebrow">x86 Browser Emulation</div>
-  <h1>CLOUD<br><span class="dim">CORE</span></h1>
+  <div class="eyebrow">x86 Browser Emulation</div>
+  <h1>CLOUD<br><span class="ghost">CORE</span></h1>
   <p class="hero-sub">Boot any operating system directly inside your browser. No installation. No virtual machine software. Just upload and run.</p>
-  <div class="hero-meta">
-    v86 / WebAssembly<br>
-    x86 Architecture<br>
-    Zero Install
-  </div>
+  <div class="hero-meta">v86 / WebAssembly<br>x86 Architecture<br>Zero Install</div>
 </div>
 
-<!-- STEP 1: ISO SELECTION -->
 <section>
-  <div class="section-inner">
-    <div class="step-label">01 &nbsp; Select Image</div>
-    <div class="iso-grid">
+  <div class="si">
+    <div class="slabel">01 &nbsp; Select Image</div>
+    <div class="isogrid">
 
-      <div class="iso-card" id="c-nova" onclick="pick('nova',this)">
-        <div class="active-mark">✓</div>
-        <div class="card-num">001</div>
-        <div class="card-title">NovaAI OS</div>
-        <div class="card-body">Custom AI-integrated Linux distribution built for intelligent computing and research workflows.</div>
-        <div class="card-tags">
-          <span class="tag">AI / ML</span>
-          <span class="tag">Custom</span>
-          <span class="tag">28 MB</span>
-        </div>
+      <div class="isocard" id="c-nova" onclick="pick('nova',this)">
+        <div class="amark">✓</div>
+        <div class="cnum">001</div>
+        <div class="ctitle">NovaAI OS</div>
+        <div class="cbody">Custom AI-integrated Linux distribution built for intelligent computing and research workflows.</div>
+        <div class="ctags"><span class="tag">AI / ML</span><span class="tag">Custom</span><span class="tag">28 MB</span></div>
       </div>
 
-      <div class="iso-card" id="c-tiny" onclick="pick('tiny',this)">
-        <div class="active-mark">✓</div>
-        <div class="card-num">002</div>
-        <div class="card-title">TinyCore Linux</div>
-        <div class="card-body">Minimal 25MB Linux system. Rapid boot, ideal for quick browser-based system exploration.</div>
-        <div class="card-tags">
-          <span class="tag">Linux</span>
-          <span class="tag">Minimal</span>
-          <span class="tag">25 MB</span>
-        </div>
+      <div class="isocard" id="c-tiny" onclick="pick('tiny',this)">
+        <div class="amark">✓</div>
+        <div class="cnum">002</div>
+        <div class="ctitle">TinyCore Linux</div>
+        <div class="cbody">Minimal 25MB Linux system. Rapid boot, ideal for quick browser-based system exploration.</div>
+        <div class="ctags"><span class="tag">Linux</span><span class="tag">Minimal</span><span class="tag">25 MB</span></div>
       </div>
 
-      <div class="upload-zone" id="c-custom" onclick="document.getElementById('iso-input').click()">
-        <div class="active-mark" id="u-check" style="position:absolute;top:20px;right:20px;width:18px;height:18px;border:1px solid var(--white);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--white);opacity:0;transition:opacity 0.2s;">✓</div>
-        <div class="upload-icon-wrap">📁</div>
-        <div class="upload-title">Custom ISO</div>
-        <div class="upload-hint">Click to browse or drag &amp; drop<br>any x86 bootable image</div>
-        <div class="upload-file-name" id="u-name"></div>
-        <input type="file" id="iso-input" accept=".iso" onchange="onFile(event)">
+      <div class="upzone" id="c-custom" onclick="document.getElementById('fup').click()">
+        <div class="amark" id="ucheck" style="position:absolute;top:20px;right:20px;width:18px;height:18px;border:1px solid var(--fg);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--fg);opacity:0;transition:opacity .2s;">✓</div>
+        <div class="upicon">📁</div>
+        <div class="uptitle">Custom ISO</div>
+        <div class="uphint">Click to browse or drag &amp; drop<br>any x86 bootable image</div>
+        <div class="upname" id="uname"></div>
+        <input type="file" id="fup" accept=".iso" onchange="onFile(event)">
       </div>
 
     </div>
   </div>
 </section>
 
-<!-- STEP 2: CONTROLS -->
 <section>
-  <div class="section-inner">
-    <div class="step-label">02 &nbsp; Configure</div>
-    <div class="controls-grid">
-
-      <div class="ctrl-cell">
-        <div class="ctrl-label">RAM</div>
-        <div class="ctrl-slider-row">
-          <input type="range" id="r-mem" min="128" max="1024" step="128" value="512" oninput="updMem()">
-          <span class="ctrl-val" id="v-mem">512 MB</span>
+  <div class="si">
+    <div class="slabel">02 &nbsp; Configure</div>
+    <div class="ctrlgrid">
+      <div class="ctrlcell">
+        <div class="ctrllbl">RAM</div>
+        <div class="ctrlrow">
+          <input type="range" id="rmem" min="128" max="1024" step="128" value="512" oninput="updMem()">
+          <span class="ctrlval" id="vmem">512 MB</span>
         </div>
       </div>
-
-      <div class="ctrl-cell">
-        <div class="ctrl-label">VGA Memory</div>
-        <div class="ctrl-slider-row">
-          <input type="range" id="r-vga" min="4" max="32" step="4" value="8" oninput="updVga()">
-          <span class="ctrl-val" id="v-vga">8 MB</span>
+      <div class="ctrlcell">
+        <div class="ctrllbl">VGA Memory</div>
+        <div class="ctrlrow">
+          <input type="range" id="rvga" min="4" max="32" step="4" value="8" oninput="updVga()">
+          <span class="ctrlval" id="vvga">8 MB</span>
         </div>
       </div>
-
-      <button class="btn btn-stop" id="btn-stop" onclick="stop()" disabled>■ STOP</button>
-      <button class="btn btn-boot" id="btn-boot" onclick="boot()" disabled>▶ BOOT</button>
-
+      <button class="btn btnstop" id="bstop" onclick="stop()" disabled>■ STOP</button>
+      <button class="btn btnboot" id="bboot" onclick="boot()" disabled>▶ BOOT</button>
     </div>
   </div>
 </section>
 
-<!-- STEP 3: VM -->
 <section>
-  <div class="section-inner">
-    <div class="step-label">03 &nbsp; Virtual Machine</div>
-
-    <div class="emu-wrap">
-      <div class="emu-bar">
-        <div class="emu-dots">
-          <div class="edot"></div>
-          <div class="edot"></div>
-          <div class="edot"></div>
-        </div>
-        <div class="emu-title" id="emu-title">— no image loaded —</div>
-        <button class="emu-fs-btn" onclick="fs()">⛶</button>
+  <div class="si">
+    <div class="slabel">03 &nbsp; Virtual Machine</div>
+    <div class="emuwrap">
+      <div class="emubar">
+        <div class="edots"><div class="edot"></div><div class="edot"></div><div class="edot"></div></div>
+        <div class="emutitle" id="etitle">— no image loaded —</div>
+        <button class="emufsbtn" onclick="goFS()">⛶</button>
       </div>
-
-      <div class="emu-screen" id="emu-frame">
-        <!-- loader -->
+      <div class="emuscreen" id="eframe">
         <div class="loader" id="loader">
-          <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
-          <div class="loader-label" id="loader-txt">Initializing…</div>
+          <div class="lbarwrap"><div class="lbar"></div></div>
+          <div class="llabel" id="ltxt">Initializing…</div>
         </div>
-
-        <!-- idle -->
         <div class="idle" id="idle">
-          <div class="idle-glyph">⬡</div>
-          <div class="idle-text">Awaiting Boot Signal</div>
+          <div class="idleglyph">⬡</div>
+          <div class="idletext">Awaiting Boot Signal</div>
         </div>
-
-        <div id="screen_container"></div>
+        <div id="sc"></div>
       </div>
-
-      <!-- log -->
-      <div class="log-wrap">
-        <div class="log-bar">
-          <div class="log-label">System Log</div>
-          <button class="log-clr" onclick="clrLog()">clear</button>
+      <div class="logwrap">
+        <div class="logbar">
+          <div class="loglbl">System Log</div>
+          <button class="logclr" onclick="clrLog()">clear</button>
         </div>
         <div id="log"></div>
       </div>
     </div>
-
   </div>
 </section>
 
-<!-- FOOTER -->
 <footer>
-  <div class="footer-left">CLOUDCORE &nbsp;/&nbsp; BROWSER EMULATION</div>
-  <div class="footer-right">
-    <a href="https://github.com/copy/v86" target="_blank">v86</a>
-    &nbsp;·&nbsp;
-    <a href="https://github.com/vishal51512/browser-deployment-for-NovaAI_OS" target="_blank">github</a>
-    &nbsp;·&nbsp;
+  <div class="fleft">CLOUDCORE &nbsp;/&nbsp; BROWSER EMULATION</div>
+  <div class="fright">
+    <a href="https://github.com/copy/v86" target="_blank">v86</a> &nbsp;·&nbsp;
+    <a href="https://github.com/vishal51512/browser-deployment-for-NovaAI_OS" target="_blank">github</a> &nbsp;·&nbsp;
     <a href="https://github.com/vishal51512" target="_blank">vishal51512</a>
   </div>
 </footer>
 
 <script>
+/* ── THEME ── */
+let theme = localStorage.getItem('cc-theme')||'dark';
+function applyTheme(t){
+  theme=t;
+  document.documentElement.setAttribute('data-theme',t);
+  document.getElementById('ticon').textContent  = t==='dark'?'☀':'☾';
+  document.getElementById('tlabel').textContent = t==='dark'?'LIGHT':'DARK';
+  localStorage.setItem('cc-theme',t);
+}
+function toggleTheme(){ applyTheme(theme==='dark'?'light':'dark'); }
+applyTheme(theme);
+
+/* ── EMULATOR ── */
 let sel=null,custFile=null,custUrl=null,emu=null,running=false;
-const isoMap={nova:{url:'NovaAI-OS.iso',name:'NovaAI OS'},tiny:{url:'TinyCore-current.iso',name:'TinyCore Linux'}};
+const ISO={nova:{url:'NovaAI-OS.iso',name:'NovaAI OS'},tiny:{url:'TinyCore-current.iso',name:'TinyCore Linux'}};
 
 function lg(msg,t=''){
-  const d=document.getElementById('log');
-  const s=document.createElement('span');
-  const ts=new Date().toLocaleTimeString('en',{hour12:false});
-  s.textContent=ts+' › '+msg;
-  if(t)s.className='l-'+t;
+  const d=document.getElementById('log'),s=document.createElement('span');
+  s.textContent=new Date().toLocaleTimeString('en',{hour12:false})+' › '+msg;
+  if(t)s.className='l'+t;
   d.appendChild(s);d.scrollTop=d.scrollHeight;
 }
 function clrLog(){document.getElementById('log').innerHTML='';lg('—')}
-
-function setStatus(txt,on=false){
-  document.getElementById('s-txt').textContent=txt;
-  document.getElementById('s-dot').className='dot'+(on?' on':'');
+function setS(txt,on=false){
+  document.getElementById('stxt').textContent=txt;
+  document.getElementById('sdot').className='sdot'+(on?' on':'');
 }
+function updMem(){document.getElementById('vmem').textContent=document.getElementById('rmem').value+' MB'}
+function updVga(){document.getElementById('vvga').textContent=document.getElementById('rvga').value+' MB'}
 
-function updMem(){document.getElementById('v-mem').textContent=document.getElementById('r-mem').value+' MB'}
-function updVga(){document.getElementById('v-vga').textContent=document.getElementById('r-vga').value+' MB'}
-
-function clearCards(){
-  document.querySelectorAll('.iso-card').forEach(c=>c.classList.remove('active'));
-  document.getElementById('c-custom').classList.remove('active');
-  document.getElementById('u-check').style.opacity='0';
+function clrCards(){
+  document.querySelectorAll('.isocard').forEach(c=>c.classList.remove('on'));
+  document.getElementById('c-custom').classList.remove('on');
+  document.getElementById('ucheck').style.opacity='0';
 }
-
 function pick(type,el){
-  clearCards();
-  sel=type;
-  el.classList.add('active');
-  document.getElementById('btn-boot').disabled=false;
-  document.getElementById('emu-title').textContent=isoMap[type].name;
-  lg('Image selected: '+isoMap[type].name,'info');
+  clrCards();sel=type;el.classList.add('on');
+  document.getElementById('bboot').disabled=false;
+  document.getElementById('etitle').textContent=ISO[type].name;
+  lg('Image selected: '+ISO[type].name,'info');
 }
-
 function onFile(e){
   const f=e.target.files[0];if(!f)return;
   if(custUrl)URL.revokeObjectURL(custUrl);
   custFile=f;custUrl=URL.createObjectURL(f);
-  clearCards();
-  sel='custom';
-  document.getElementById('c-custom').classList.add('active');
-  document.getElementById('u-check').style.opacity='1';
-  document.getElementById('u-name').textContent=f.name;
-  document.getElementById('btn-boot').disabled=false;
-  document.getElementById('emu-title').textContent=f.name;
-  lg('Custom ISO loaded: '+f.name+' ('+( f.size/1024/1024).toFixed(1)+' MB)','ok');
+  clrCards();sel='custom';
+  document.getElementById('c-custom').classList.add('on');
+  document.getElementById('ucheck').style.opacity='1';
+  document.getElementById('uname').textContent=f.name;
+  document.getElementById('bboot').disabled=false;
+  document.getElementById('etitle').textContent=f.name;
+  lg('Custom ISO: '+f.name+' ('+(f.size/1024/1024).toFixed(1)+' MB)','ok');
 }
-
-// drag & drop
 const uz=document.getElementById('c-custom');
-uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('drag-over')});
-uz.addEventListener('dragleave',()=>uz.classList.remove('drag-over'));
+uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('drag')});
+uz.addEventListener('dragleave',()=>uz.classList.remove('drag'));
 uz.addEventListener('drop',e=>{
-  e.preventDefault();uz.classList.remove('drag-over');
+  e.preventDefault();uz.classList.remove('drag');
   const f=e.dataTransfer.files[0];
   if(f&&f.name.endsWith('.iso'))onFile({target:{files:[f]}});
 });
@@ -816,86 +425,71 @@ uz.addEventListener('drop',e=>{
 function stop(){
   if(emu){emu.stop();emu=null;}
   running=false;
-  document.getElementById('screen_container').style.display='none';
-  document.getElementById('screen_container').innerHTML='';
+  document.getElementById('sc').style.display='none';
+  document.getElementById('sc').innerHTML='';
   document.getElementById('idle').classList.remove('gone');
   document.getElementById('loader').classList.remove('show');
-  document.getElementById('btn-stop').disabled=true;
-  document.getElementById('btn-boot').disabled=sel===null;
-  setStatus('STANDBY');
-  lg('Emulator stopped.','warn');
+  document.getElementById('bstop').disabled=true;
+  document.getElementById('bboot').disabled=sel===null;
+  setS('STANDBY');lg('Emulator stopped.','warn');
 }
-
 function boot(){
   if(!sel)return;
   if(running)stop();
-  const mem=parseInt(document.getElementById('r-mem').value);
-  const vga=parseInt(document.getElementById('r-vga').value);
+  const mem=parseInt(document.getElementById('rmem').value);
+  const vga=parseInt(document.getElementById('rvga').value);
   let url,name;
   if(sel==='custom'){
-    if(!custUrl){lg('No ISO file loaded.','err');return;}
+    if(!custUrl){lg('No ISO loaded.','err');return;}
     url=custUrl;name=custFile.name;
-  }else{url=isoMap[sel].url;name=isoMap[sel].name;}
-
+  }else{url=ISO[sel].url;name=ISO[sel].name;}
   document.getElementById('idle').classList.add('gone');
   document.getElementById('loader').classList.add('show');
-  document.getElementById('loader-txt').textContent='Loading '+name+' …';
-  document.getElementById('btn-boot').disabled=true;
-  document.getElementById('btn-stop').disabled=true;
-  setStatus('BOOTING',true);
+  document.getElementById('ltxt').textContent='Loading '+name+' …';
+  document.getElementById('bboot').disabled=true;
+  document.getElementById('bstop').disabled=true;
+  setS('BOOTING',true);
   lg('Booting: '+name,'info');
-  lg('RAM: '+mem+'MB  VGA: '+vga+'MB','info');
-
+  lg('RAM: '+mem+'MB · VGA: '+vga+'MB','info');
   try{
-    const sc=document.getElementById('screen_container');
+    const sc=document.getElementById('sc');
     sc.style.display='block';
     emu=new V86({
-      wasm_path:'v86.wasm',
-      memory_size:mem*1024*1024,
-      vga_memory_size:vga*1024*1024,
-      screen_container:sc,
-      bios:{url:'seabios.bin'},
-      vga_bios:{url:'vgabios.bin'},
-      cdrom:{url:url},
-      boot_order:0x132,
-      autostart:true
+      wasm_path:'v86.wasm',memory_size:mem*1024*1024,vga_memory_size:vga*1024*1024,
+      screen_container:sc,bios:{url:'seabios.bin'},vga_bios:{url:'vgabios.bin'},
+      cdrom:{url:url},boot_order:0x132,autostart:true
     });
     emu.add_listener('emulator-ready',()=>{
       document.getElementById('loader').classList.remove('show');
-      running=true;
-      document.getElementById('btn-stop').disabled=false;
-      setStatus('RUNNING',true);
-      lg(name+' running.','ok');
+      running=true;document.getElementById('bstop').disabled=false;
+      setS('RUNNING',true);lg(name+' running.','ok');
     });
     emu.add_listener('emulator-stopped',()=>{
-      setStatus('HALTED');lg('Halted.','warn');
-      running=false;
-      document.getElementById('btn-stop').disabled=true;
-      document.getElementById('btn-boot').disabled=false;
+      setS('HALTED');lg('Halted.','warn');running=false;
+      document.getElementById('bstop').disabled=true;
+      document.getElementById('bboot').disabled=false;
       document.getElementById('loader').classList.remove('show');
     });
     setTimeout(()=>{
       if(document.getElementById('loader').classList.contains('show')){
         document.getElementById('loader').classList.remove('show');
-        running=true;document.getElementById('btn-stop').disabled=false;
-        setStatus('RUNNING',true);lg('Running (timeout fallback).','warn');
+        running=true;document.getElementById('bstop').disabled=false;
+        setS('RUNNING',true);lg('Running (fallback).','warn');
       }
     },6000);
   }catch(err){
     document.getElementById('loader').classList.remove('show');
     document.getElementById('idle').classList.remove('gone');
-    document.getElementById('screen_container').style.display='none';
-    document.getElementById('btn-boot').disabled=false;
-    setStatus('ERROR');lg('Error: '+err.message,'err');
+    document.getElementById('sc').style.display='none';
+    document.getElementById('bboot').disabled=false;
+    setS('ERROR');lg('Error: '+err.message,'err');
   }
 }
-
-function fs(){
-  const f=document.getElementById('emu-frame');
-  if(!document.fullscreenElement)f.requestFullscreen().catch(e=>lg('Fullscreen: '+e.message,'warn'));
+function goFS(){
+  const f=document.getElementById('eframe');
+  if(!document.fullscreenElement)f.requestFullscreen().catch(e=>lg('FS: '+e.message,'warn'));
   else document.exitFullscreen();
 }
-
 updMem();updVga();
 lg('CloudCore ready.','ok');
 </script>
